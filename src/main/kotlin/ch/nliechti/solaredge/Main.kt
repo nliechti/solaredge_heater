@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.MINUTES
 
 var shellyIp: String = ""
+var availablePower: Long = 3000
 
 fun main(args: Array<String>) = runBlocking<Unit> {
     val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
@@ -19,6 +20,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     shellyIp = System.getenv("SHELLY_IP")
     val updateCycleInMS = System.getenv("UPDATE_CYCLE") ?: "10000"
     val updateCycle = updateCycleInMS.toLong()
+    availablePower = System.getenv("AVAILABLE_POWER").toLong()
 
     while (true) {
         val getString = "https://monitoringapi.solaredge.com/site/$siteId/powerDetails" +
@@ -53,7 +55,7 @@ fun triggerShellyIfEnoughPower(powerDetailsResponse: PowerDetailsResponse) {
     logWithDate("selfConsumption: $selfConsumption")
     logWithDate("Power available: ${(production - selfConsumption)}")
 
-    if ((production - selfConsumption) > 3000) {
+    if ((production - selfConsumption) > availablePower) {
         turnShelly(ON)
     } else {
         turnShelly(OFF)
