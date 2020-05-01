@@ -33,8 +33,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
                         Klaxon().parse<PowerDetailsResponse>(data)?.let { triggerShellyIfEnoughPower(it) }
                     }
                     is Result.Failure -> {
-                        val ex = result.getException()
-                        println(ex)
+                        logWithDate("Call to $getString failed")
                     }
                 }
             }
@@ -46,11 +45,13 @@ fun main(args: Array<String>) = runBlocking<Unit> {
 fun triggerShellyIfEnoughPower(powerDetailsResponse: PowerDetailsResponse) {
     val production = powerDetailsResponse.powerDetails.meters.filter { it.type == "Production" }[0].values[0].value
     val selfConsumption = powerDetailsResponse.powerDetails.meters.filter { it.type == "SelfConsumption" }[0].values[0].value
-    if (null == production || null == selfConsumption)
+    if (null == production || null == selfConsumption) {
+        logWithDate("***** Production or SelfConsumption is not set *****")
         return
-    println("Production: $production")
-    println("selfConsumption: $selfConsumption")
-    println("Power available: ${(production - selfConsumption)}")
+    }
+    logWithDate("Production: $production")
+    logWithDate("selfConsumption: $selfConsumption")
+    logWithDate("Power available: ${(production - selfConsumption)}")
 
     if ((production - selfConsumption) > 3000) {
         turnShelly(ON)
@@ -60,7 +61,7 @@ fun triggerShellyIfEnoughPower(powerDetailsResponse: PowerDetailsResponse) {
 }
 
 fun turnShelly(shellyState: ShellyState) {
-    println("Turn shelly $shellyState")
+    logWithDate("Turn shelly $shellyState")
     "http://$shellyIp/relay/0?turn=${shellyState.state}".httpGet().response()
 }
 
@@ -78,4 +79,10 @@ fun getNow(): String {
 
 enum class ShellyState constructor(val state: String) {
     ON("on"), OFF("off")
+}
+
+fun logWithDate(message: String) {
+    val date = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    println(date.format(formatter) + ": " + message)
 }
