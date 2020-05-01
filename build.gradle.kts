@@ -45,7 +45,7 @@ val versionDetails: Closure<VersionDetails> by extra
 
 val jar by tasks.getting(Jar::class) {
     manifest {
-        attributes["Main-Class"] = "ch.ergon.axenita.operator.AxenitaOperatorKt"
+        attributes["Main-Class"] = "ch.nliechti.solaredge.MainKt"
     }
 }
 

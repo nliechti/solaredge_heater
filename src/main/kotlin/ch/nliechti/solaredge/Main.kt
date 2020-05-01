@@ -14,9 +14,11 @@ import java.time.temporal.ChronoUnit.MINUTES
 var shellyIp: String = ""
 
 fun main(args: Array<String>) = runBlocking<Unit> {
-    val apiKey = System.getenv("SOLAR_EDGE_API_KEY") ?: "DQRY5QQJEJU4B9IJ02RLYQZBX99AOI7I"
-    val siteId = System.getenv("SOLAR_EDGE_SITE_ID") ?: "1570357"
-    shellyIp = System.getenv("SHELLY_IP") ?: "10.1.1.46"
+    val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
+    val siteId = System.getenv("SOLAR_EDGE_SITE_ID")
+    shellyIp = System.getenv("SHELLY_IP")
+    val updateCycleInMS = System.getenv("UPDATE_CYCLE") ?: "10000"
+    val updateCycle = updateCycleInMS.toLong()
 
     while (true) {
         val getString = "https://monitoringapi.solaredge.com/site/$siteId/powerDetails" +
@@ -36,7 +38,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
                     }
                 }
             }
-        Thread.sleep(10000)
+        Thread.sleep(updateCycle)
     }
 }
 
