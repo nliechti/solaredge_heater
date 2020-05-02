@@ -13,14 +13,21 @@ import java.time.temporal.ChronoUnit.MINUTES
 
 var shellyIp: String = ""
 var availablePower: Long = 3000
+var updateCycleInitial = 10000L
+
+// 10min
+var updateCycleAfterPowerOn = 600000L
+var activeUpdateCycle = updateCycleAfterPowerOn
 
 fun main(args: Array<String>) = runBlocking<Unit> {
     val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
     val siteId = System.getenv("SOLAR_EDGE_SITE_ID")
     shellyIp = System.getenv("SHELLY_IP")
-    val updateCycleInMS = System.getenv("UPDATE_CYCLE") ?: "10000"
-    val updateCycle = updateCycleInMS.toLong()
+    updateCycleInitial = System.getenv("UPDATE_CYCLE").toLong()
+    updateCycleAfterPowerOn = System.getenv("UPDATE_CYCLE_AFTER_POWER_ON").toLong()
     availablePower = System.getenv("AVAILABLE_POWER").toLong()
+
+    activeUpdateCycle = updateCycleInitial
 
     while (true) {
         val getString = "https://monitoringapi.solaredge.com/site/$siteId/powerDetails" +
@@ -39,7 +46,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
                     }
                 }
             }
-        Thread.sleep(updateCycle)
+        Thread.sleep(activeUpdateCycle)
     }
 }
 
@@ -49,16 +56,19 @@ fun triggerShellyIfEnoughPower(powerDetailsResponse: PowerDetailsResponse) {
     val selfConsumption = powerDetailsResponse.powerDetails.meters.filter { it.type == "SelfConsumption" }[0].values[0].value
     if (null == production || null == selfConsumption) {
         logWithDate("***** Production or SelfConsumption is not set *****")
+        triggerShellyIfEnoughPower(powerDetailsResponse)
         return
     }
     logWithDate("Production: $production")
     logWithDate("selfConsumption: $selfConsumption")
     logWithDate("Power available: ${(production - selfConsumption)}")
 
-    if ((production - selfConsumption) > availablePower) {
+    activeUpdateCycle = if ((production - selfConsumption) > availablePower) {
         turnShelly(ON)
+        updateCycleAfterPowerOn
     } else {
         turnShelly(OFF)
+        updateCycleInitial
     }
 }
 
