@@ -1,9 +1,10 @@
 package ch.nliechti.solaredge
 
-import ch.nliechti.solaredge.ShellyState.OFF
-import ch.nliechti.solaredge.ShellyState.ON
 import ch.nliechti.solaredge.powerDetails.PowerDetailsResponse
 import ch.nliechti.solaredge.powerDetails.SolarEdgeParsedResponse
+import ch.nliechti.solaredge.services.ShellyService
+import ch.nliechti.solaredge.services.ShellyState.OFF
+import ch.nliechti.solaredge.services.ShellyState.ON
 import com.beust.klaxon.Klaxon
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
@@ -12,12 +13,13 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit.MINUTES
 
-var shellyIp: String = ""
-var powerReserve: Int = 0
-var heaterPowerUsage = 5000
-var updateCycleInitial = 10000L
-val siteId = System.getenv("SOLAR_EDGE_SITE_ID")
-val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
+private var shellyIp: String = ""
+private var powerReserve: Int = 0
+private var heaterPowerUsage = 5000
+private var updateCycleInitial = 10000L
+private val siteId = System.getenv("SOLAR_EDGE_SITE_ID")
+private val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
+private lateinit var shellyService: ShellyService
 
 // 10min
 var updateCycleAfterPowerOn = 600000L
@@ -29,6 +31,7 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     updateCycleAfterPowerOn = (System.getenv("UPDATE_CYCLE_AFTER_POWER_ON") ?: "15000").toLong()
     powerReserve = (System.getenv("AVAILABLE_POWER") ?: "500").toInt()
     heaterPowerUsage = (System.getenv("HEATER_POWER_USAGE") ?: "5000").toInt()
+    shellyService = ShellyService(shellyIp)
 
     activeUpdateCycle = updateCycleInitial
 
@@ -69,7 +72,7 @@ fun parseResponse(powerDetailsResponse: PowerDetailsResponse): SolarEdgeParsedRe
     return SolarEdgeParsedResponse(
             production = powerDetailsResponse.powerDetails.meters.filter { it.type == "Production" }[0].values[0].value,
             selfConsumption = powerDetailsResponse.powerDetails.meters.filter { it.type == "SelfConsumption" }[0].values[0].value,
-            isShellyOn = isShellyOn()
+            isShellyOn = shellyService.isShellyOn()
     )
 }
 
@@ -85,7 +88,7 @@ fun triggerShellyIfEnoughPower(solarEdgeResponse: SolarEdgeParsedResponse): Trig
     logWithDate("selfConsumption: $selfConsumption")
     logWithDate("Power available: ${(production - selfConsumption)}")
 
-    val isShellyOn = isShellyOn()
+    val isShellyOn = shellyService.isShellyOn()
     logWithDate("Shelly isOn: $isShellyOn")
     if (isShellyOn) {
         production -= heaterPowerUsage
@@ -94,30 +97,12 @@ fun triggerShellyIfEnoughPower(solarEdgeResponse: SolarEdgeParsedResponse): Trig
 
     val spareEnergy = (production - selfConsumption)
     return if (spareEnergy > powerReserve) {
-        turnShelly(ON)
+        shellyService.turnShelly(ON)
         TriggerShellyResponse(ON, updateCycleAfterPowerOn, spareEnergy)
     } else {
-        turnShelly(OFF)
+        shellyService.turnShelly(OFF)
         TriggerShellyResponse(OFF, updateCycleInitial, spareEnergy)
     }
-}
-
-fun isShellyOn(): Boolean {
-    var shellyState = false
-    val call = "http://$shellyIp/relay/0".httpGet().responseString { shellyResponse ->
-        when (shellyResponse) {
-            is Result.Success -> {
-                Klaxon().parse<ShellyResponse>(shellyResponse.get())?.let { shellyState = it.isOn }
-            }
-        }
-    }
-    call.join()
-    return shellyState
-}
-
-fun turnShelly(shellyState: ShellyState) {
-    logWithDate("Turn shelly $shellyState")
-    "http://$shellyIp/relay/0?turn=${shellyState.state}".httpGet().response()
 }
 
 fun get15minInFuture(): String {
@@ -130,10 +115,6 @@ fun getNow(): String {
     val date = LocalDateTime.now()
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     return date.format(formatter).replace(" ", "%20")
-}
-
-enum class ShellyState constructor(val state: String) {
-    ON("on"), OFF("off")
 }
 
 fun logWithDate(message: String) {
