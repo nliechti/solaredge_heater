@@ -35,6 +35,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5")
     implementation("com.github.kittinunf.fuel:fuel:2.2.2")
     implementation("com.beust:klaxon:5.2")
+    implementation("org.junit.jupiter:junit-jupiter:5.4.2")
 }
 
 // https://github.com/palantir/gradle-git-version/issues/105#issuecomment-523192407
