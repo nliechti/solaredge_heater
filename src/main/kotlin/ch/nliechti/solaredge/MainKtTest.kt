@@ -1,5 +1,9 @@
 package ch.nliechti.solaredge
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
-internal class MainKtTest
+internal class MainKtTest {
+    @Test
+    fun turnShellyOnIfEnoughEnergyIsPresent() {
+    }
+}
