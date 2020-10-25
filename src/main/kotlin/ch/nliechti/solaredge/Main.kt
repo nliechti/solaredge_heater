@@ -21,8 +21,8 @@ private val siteId = System.getenv("SOLAR_EDGE_SITE_ID")
 private val apiKey = System.getenv("SOLAR_EDGE_API_KEY")
 private lateinit var shellyService: ShellyService
 
-// 10min
-var updateCycleAfterPowerOn = 600000L
+// 5min
+var updateCycleAfterPowerOn = 300000L
 var activeUpdateCycle = updateCycleAfterPowerOn
 
 fun main(args: Array<String>) = runBlocking<Unit> {
@@ -62,7 +62,7 @@ private fun getValues() {
 }
 
 fun triggerShelly(powerDetailsResponse: PowerDetailsResponse) {
-    val response = triggerShellyIfEnoughPower(parseResponse(powerDetailsResponse))
+    val response = shellyService.triggerShellyIfEnoughPower(parseResponse(powerDetailsResponse))
     response?.let {
         activeUpdateCycle = if(it.shellyState == ON) {
             updateCycleAfterPowerOn
@@ -82,31 +82,3 @@ fun parseResponse(powerDetailsResponse: PowerDetailsResponse): ShellyDecisionPar
     )
 }
 
-fun triggerShellyIfEnoughPower(params: ShellyDecisionParams): TriggerShellyResponse? {
-    var production = params.production
-    val selfConsumption = params.selfConsumption
-    if (null == production || null == selfConsumption) {
-        logWithDate("***** Production or SelfConsumption is not set *****")
-        Thread.sleep(10000)
-        return null
-    }
-    logWithDate("Production: $production")
-    logWithDate("selfConsumption: $selfConsumption")
-    logWithDate("Power available: ${(production - selfConsumption)}")
-
-
-    logWithDate("Shelly isOn: ${params.isShellyOn}")
-    if (params.isShellyOn) {
-        production -= params.heaterPowerUsage
-        logWithDate("Production without heater is $production")
-    }
-
-    val spareEnergy = (production - selfConsumption)
-    return if (spareEnergy > params.powerReserve) {
-        shellyService.turnShelly(ON)
-        TriggerShellyResponse(ON, spareEnergy)
-    } else {
-        shellyService.turnShelly(OFF)
-        TriggerShellyResponse(OFF, spareEnergy)
-    }
-}
