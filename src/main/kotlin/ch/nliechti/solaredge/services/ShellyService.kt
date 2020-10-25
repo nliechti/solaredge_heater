@@ -1,7 +1,7 @@
 package ch.nliechti.solaredge.services
 
 import ch.nliechti.solaredge.ShellyResponse
-import ch.nliechti.solaredge.logWithDate
+import ch.nliechti.solaredge.services.UtilService.Companion.logWithDate
 import com.beust.klaxon.Klaxon
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result

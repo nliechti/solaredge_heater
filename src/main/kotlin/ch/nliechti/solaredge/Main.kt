@@ -5,13 +5,13 @@ import ch.nliechti.solaredge.powerDetails.SolarEdgeParsedResponse
 import ch.nliechti.solaredge.services.ShellyService
 import ch.nliechti.solaredge.services.ShellyState.OFF
 import ch.nliechti.solaredge.services.ShellyState.ON
+import ch.nliechti.solaredge.services.UtilService.Companion.get15minInFuture
+import ch.nliechti.solaredge.services.UtilService.Companion.getNow
+import ch.nliechti.solaredge.services.UtilService.Companion.logWithDate
 import com.beust.klaxon.Klaxon
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
 import kotlinx.coroutines.runBlocking
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit.MINUTES
 
 private var shellyIp: String = ""
 private var powerReserve: Int = 0
@@ -103,22 +103,4 @@ fun triggerShellyIfEnoughPower(solarEdgeResponse: SolarEdgeParsedResponse): Trig
         shellyService.turnShelly(OFF)
         TriggerShellyResponse(OFF, updateCycleInitial, spareEnergy)
     }
-}
-
-fun get15minInFuture(): String {
-    val date = LocalDateTime.now().plus(15, MINUTES)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    return date.format(formatter).replace(" ", "%20")
-}
-
-fun getNow(): String {
-    val date = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    return date.format(formatter).replace(" ", "%20")
-}
-
-fun logWithDate(message: String) {
-    val date = LocalDateTime.now()
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    println(date.format(formatter) + ": " + message)
 }
