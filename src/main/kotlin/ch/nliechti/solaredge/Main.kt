@@ -51,6 +51,7 @@ private fun getValues() {
                 when (result) {
                     is Result.Success -> {
                         val data = result.get()
+                        logWithDate("----------------------")
                         Klaxon().parse<PowerDetailsResponse>(data)?.let { triggerShelly(it) }
                     }
                     is Result.Failure -> {
