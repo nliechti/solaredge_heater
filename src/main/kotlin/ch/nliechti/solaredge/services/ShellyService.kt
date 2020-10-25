@@ -23,7 +23,7 @@ class ShellyService(private val shellyIp: String) {
         return shellyState
     }
 
-    fun turnShelly(shellyState: ShellyState) {
+    private fun turnShelly(shellyState: ShellyState) {
         logWithDate("Turn shelly $shellyState")
         "http://${shellyIp}/relay/0?turn=${shellyState.state}".httpGet().response()
     }
@@ -42,12 +42,13 @@ class ShellyService(private val shellyIp: String) {
 
 
         logWithDate("Shelly isOn: ${params.isShellyOn}")
-        if (params.isShellyOn) {
-            production -= params.heaterPowerUsage
-            logWithDate("Production without heater is $production")
+        var spareEnergy = (production - selfConsumption)
+        if (!params.isShellyOn) {
+            spareEnergy -= params.heaterPowerUsage
         }
 
-        val spareEnergy = (production - selfConsumption)
+        logWithDate("Spare energy: $spareEnergy")
+
         return if (spareEnergy > params.powerReserve) {
             turnShelly(ShellyState.ON)
             TriggerShellyResponse(ShellyState.ON, spareEnergy)
