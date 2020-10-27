@@ -45,6 +45,44 @@ internal class ShellyServiceTest {
     }
 
     @Test
+    fun honorPowerReserveOnTurningON() {
+        val params = ShellyDecisionParams(
+                production = 6000.0,
+                selfConsumption = 1600.0,
+                isShellyOn = false,
+                heaterPowerUsage = 4000,
+                powerReserve = 500
+        )
+
+        val result = shellyService.triggerShellyIfEnoughPower(params)
+        assertTrue { result!!.shellyState == ShellyState.OFF }
+    }
+
+    @Test
+    fun ignorePowerReserveAfterPowerOn() {
+        val params = ShellyDecisionParams(
+                production = 6000.0,
+                selfConsumption = 1400.0,
+                isShellyOn = false,
+                heaterPowerUsage = 4000,
+                powerReserve = 500
+        )
+
+        val result = shellyService.triggerShellyIfEnoughPower(params)
+        assertTrue { result!!.shellyState == ShellyState.ON }
+
+        val paramsAfterOn = ShellyDecisionParams(
+                production = 6000.0,
+                selfConsumption = 5900.0,
+                isShellyOn = true,
+                heaterPowerUsage = 4000,
+                powerReserve = 500
+        )
+        val resultAfterOn = shellyService.triggerShellyIfEnoughPower(paramsAfterOn)
+        assertTrue { resultAfterOn!!.shellyState == ShellyState.ON }
+    }
+
+    @Test
     fun turnShellyOffIfNotEnergyIsPresent() {
         val params = ShellyDecisionParams(
                 production = 4000.0,

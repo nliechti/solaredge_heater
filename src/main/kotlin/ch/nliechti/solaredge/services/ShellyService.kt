@@ -29,7 +29,7 @@ class ShellyService(private val shellyIp: String) {
     }
 
     fun triggerShellyIfEnoughPower(params: ShellyDecisionParams): TriggerShellyResponse? {
-        var production = params.production
+        val production = params.production
         val selfConsumption = params.selfConsumption
         if (null == production || null == selfConsumption) {
             logWithDate("***** Production or SelfConsumption is not set *****")
@@ -43,7 +43,9 @@ class ShellyService(private val shellyIp: String) {
 
         logWithDate("Shelly isOn: ${params.isShellyOn}")
         var spareEnergy = (production - selfConsumption)
-        if (!params.isShellyOn) {
+        if (params.isShellyOn) {
+            spareEnergy += params.powerReserve
+        } else {
             spareEnergy -= params.heaterPowerUsage
         }
 
